@@ -9,7 +9,7 @@ import { AbstractLink } from '../src/core/abstract'
 class DemoLinkType extends AbstractLink {
   readonly type = 'demo'
 
-  protected handle(_raw: string, value = '') {
+  protected handle(value = '') {
     return {
       href: `https://demo.local/${value}`,
       text: `demo:${value}`

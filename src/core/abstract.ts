@@ -10,13 +10,13 @@ export abstract class AbstractLink implements ExtraLink {
   abstract readonly type: string
 
   resolve(match: ExtraLinkMatch, _context: ExtraLinkResolverContext): ResolvedExtraLink | null | undefined {
-    const resolved = this.handle(match.payload, ...match.params)
+    const resolved = this.handle(...match.params)
     if (!resolved)
       return resolved
     return this.withCommonConfig(resolved)
   }
 
-  protected abstract handle(raw: string, ...params: string[]): ResolvedExtraLink | null | undefined
+  protected abstract handle(...params: string[]): ResolvedExtraLink | null | undefined
 
   protected withCommonConfig(link: ResolvedExtraLink): ResolvedExtraLink {
     return {

@@ -61,8 +61,8 @@ export class GithubLink extends AbstractLink {
     this.githubOptions = mergedOptions
   }
 
-  protected handle(raw: string, repoRaw?: string, aliasRaw?: string): ResolvedExtraLink | null {
-    const parsed = parseRepo((repoRaw || raw).trim(), aliasRaw?.trim())
+  protected handle(repoRaw = '', aliasRaw = ''): ResolvedExtraLink | null {
+    const parsed = parseRepo(repoRaw.trim(), aliasRaw.trim())
     if (!parsed)
       return null
 

@@ -58,10 +58,10 @@ export class PostLink extends AbstractLink {
     this.postMap = options.globs === false ? {} : createMapFromGlobs(options)
   }
 
-  protected handle(raw: string, id?: string, alias?: string): ResolvedExtraLink {
+  protected handle(id = '', alias = ''): ResolvedExtraLink {
     const options = this.postOptions
     const pathTemplate = options.path || '/post/:id'
-    const postId = normalizeId(id || raw)
+    const postId = normalizeId(id)
     const current = this.postMap[postId]
     const payload: PostLinkFormatterPayload = {
       id: postId,

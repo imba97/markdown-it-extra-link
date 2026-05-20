@@ -92,7 +92,7 @@ import { AbstractLink } from 'markdown-it-extra-link/abstract'
 class BilibiliLinkType extends AbstractLink {
   readonly type = 'bili'
 
-  protected handle(_raw: string, bvid = '') {
+  protected handle(bvid = '') {
     bvid = bvid.trim()
     if (!bvid)
       return null
