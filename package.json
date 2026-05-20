@@ -1,0 +1,82 @@
+{
+  "name": "markdown-it-extra-link",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.1.3",
+  "description": "Extend markdown-it with typed inline links like {link:post:123}.",
+  "author": "imba97",
+  "license": "MIT",
+  "homepage": "https://github.com/imba97/markdown-it-extra-link#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/imba97/markdown-it-extra-link"
+  },
+  "bugs": {
+    "url": "https://github.com/imba97/markdown-it-extra-link/issues"
+  },
+  "keywords": [
+    "markdown-it",
+    "markdown-it-plugin",
+    "markdown",
+    "link",
+    "github"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.mjs"
+    },
+    "./abstract": {
+      "types": "./dist/core/abstract.d.ts",
+      "import": "./dist/core/abstract.mjs"
+    },
+    "./links": {
+      "types": "./dist/builtin/index.d.ts",
+      "import": "./dist/builtin/index.mjs"
+    }
+  },
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepare": "simple-git-hooks",
+    "stub": "unbuild --stub",
+    "build": "unbuild",
+    "test": "vitest run",
+    "lint": "eslint --cache",
+    "release": "bumpp"
+  },
+  "peerDependencies": {
+    "markdown-it": "^14.1.0"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "tinyglobby": "^0.2.16"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^9.0.0",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^25.9.1",
+    "bumpp": "^11.1.0",
+    "eslint": "^10.4.0",
+    "markdown-it": "^14.1.1",
+    "nano-staged": "^1.0.2",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^6.0.3",
+    "unbuild": "^3.6.1",
+    "vitest": "^4.1.7"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm nano-staged"
+  },
+  "nano-staged": {
+    "*": "eslint --cache --fix"
+  }
+}
