@@ -50,19 +50,29 @@ function resolveTemplate(template: string, params: Record<string, unknown>): str
 export class PostLink extends AbstractLink {
   readonly type = 'post'
   private readonly postOptions: PostLinkOptions
-  private readonly postMap: PostLinkMap
+  private postMap: PostLinkMap | null
 
   constructor(options: PostLinkOptions = {}) {
     super(options)
     this.postOptions = options
-    this.postMap = options.globs === false ? {} : createMapFromGlobs(options)
+    this.postMap = options.globs === false ? {} : null
+  }
+
+  refresh(): void {
+    this.postMap = this.postOptions.globs === false ? {} : createMapFromGlobs(this.postOptions)
+  }
+
+  private getPostMap(): PostLinkMap {
+    if (!this.postMap)
+      this.refresh()
+    return this.postMap || {}
   }
 
   protected handle(id = '', alias = ''): ResolvedExtraLink {
     const options = this.postOptions
     const pathTemplate = options.path || '/post/:id'
     const postId = normalizeId(id)
-    const current = this.postMap[postId]
+    const current = this.getPostMap()[postId]
     const payload: PostLinkFormatterPayload = {
       id: postId,
       title: current?.title || postId,

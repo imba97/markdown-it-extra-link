@@ -15,10 +15,24 @@ export interface ResolvedExtraLink {
   href: string
   text: string
   classList?: string[]
-  prefixHtml?: string
+  prefixItems?: ResolvedExtraLinkPrefixItem[]
   title?: string
   target?: string
   rel?: string
+}
+
+export type ResolvedExtraLinkPrefixItem = ResolvedExtraLinkClassIconPrefixItem | ResolvedExtraLinkImageIconPrefixItem
+
+export interface ResolvedExtraLinkClassIconPrefixItem {
+  kind: 'class-icon'
+  className: string
+  scale?: number
+}
+
+export interface ResolvedExtraLinkImageIconPrefixItem {
+  kind: 'image-icon'
+  src: string
+  scale?: number
 }
 
 export interface ExtraLinkResolverContext {

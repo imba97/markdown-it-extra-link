@@ -1,11 +1,60 @@
 import type MarkdownIt from 'markdown-it'
 import type { RuleInline } from 'markdown-it/lib/parser_inline.mjs'
-import type { ExtraLink, ExtraLinkMatch, MarkdownInlineStateLike, MarkdownItExtraLinkOptions, ResolvedExtraLink } from '../types'
+import type {
+  ExtraLink,
+  ExtraLinkMatch,
+  MarkdownInlineStateLike,
+  MarkdownItExtraLinkOptions,
+  ResolvedExtraLink,
+  ResolvedExtraLinkPrefixItem
+} from '../types'
 
 const reCapture = /^[ \t]*\{link:([a-z][\w-]*):([^{}\n]+)\}[ \t]*/i
 
 function splitExtraLinkParams(payload: string): string[] {
-  return payload.split(',').map(i => i.trim())
+  const params: string[] = []
+  let current = ''
+
+  for (let i = 0; i < payload.length; i += 1) {
+    const char = payload[i]
+    const next = payload[i + 1]
+    if (char === '\\' && (next === ',' || next === '\\')) {
+      current += next
+      i += 1
+      continue
+    }
+    if (char === ',') {
+      params.push(current.trim())
+      current = ''
+      continue
+    }
+    current += char
+  }
+
+  params.push(current.trim())
+  return params
+}
+
+function renderPrefixItems(md: MarkdownIt, items: ResolvedExtraLinkPrefixItem[] = []): string {
+  if (!items.length)
+    return ''
+
+  return items.map((item) => {
+    const scale = Number.isFinite(item.scale) ? Math.max(0.1, Number(item.scale)) : 1
+    const size = `${1.2 * scale}em`
+    const baseStyle = `display:inline-block;vertical-align:text-bottom;width:${size};height:${size};margin-right:0.3em;`
+
+    if (item.kind === 'class-icon') {
+      const className = md.utils.escapeHtml(item.className)
+      return `<span class="${className}" style="${baseStyle}"></span>`
+    }
+
+    const safeSrc = item.src
+      .replaceAll('"', '%22')
+      .replaceAll('\'', '%27')
+    const style = `${baseStyle}background-image:url("${safeSrc}");background-size:contain;background-repeat:no-repeat;background-position:center;`
+    return `<span style="${md.utils.escapeHtml(style)}"></span>`
+  }).join('')
 }
 
 export function parseExtraLink(source: string): ExtraLinkMatch | null {
@@ -41,7 +90,7 @@ export function renderResolvedExtraLink(
   const relAttr = relValue
     ? ` rel="${md.utils.escapeHtml(relValue)}"`
     : ''
-  const prefix = resolved.prefixHtml || ''
+  const prefix = renderPrefixItems(md, resolved.prefixItems)
   return `${prefix}<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
 }
 
@@ -50,6 +99,8 @@ export function createExtraLinkRule(
   options: MarkdownItExtraLinkOptions,
   types: ExtraLink[]
 ): RuleInline {
+  const typeMap = new Map(types.map(type => [type.type, type]))
+
   return (state: MarkdownInlineStateLike, silent: boolean) => {
     const current = state.src.charCodeAt(state.pos)
     const isOpenBrace = current === '{'.charCodeAt(0)
@@ -62,14 +113,8 @@ export function createExtraLinkRule(
     if (!parsed)
       return false
 
-    let resolved: ResolvedExtraLink | null | undefined
-    for (const type of types) {
-      if (type.type !== parsed.type)
-        continue
-      resolved = type.resolve(parsed, { md, state, options })
-      if (resolved)
-        break
-    }
+    const matchedType = typeMap.get(parsed.type)
+    const resolved = matchedType?.resolve(parsed, { md, state, options })
 
     if (!resolved)
       return false

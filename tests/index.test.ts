@@ -18,35 +18,53 @@ class DemoLinkType extends AbstractLink {
 }
 
 describe('markdown-it-extra-link', () => {
-  function createTempPost(id: string, title: string) {
+  function createTempPost(id: string, title: string, writeImmediately = true) {
     const root = mkdtempSync(path.join(tmpdir(), 'markdown-it-extra-link-'))
     const postDir = path.join(root, 'posts', 'hello-world')
     const markdownFile = path.join(postDir, 'index.md')
-    mkdirSync(postDir, { recursive: true })
-    writeFileSync(markdownFile, `---
-id: ${id}
-title: ${title}
+
+    function writePost(postId = id, postTitle = title) {
+      mkdirSync(postDir, { recursive: true })
+      writeFileSync(markdownFile, `---
+id: ${postId}
+title: ${postTitle}
 ---
 `, { encoding: 'utf-8' })
+    }
+
+    if (writeImmediately)
+      writePost()
+
     return {
       cleanup: () => rmSync(root, { force: true, recursive: true }),
-      globs: `${root.replaceAll('\\', '/')}/posts/**/index.md`
+      globs: `${root.replaceAll('\\', '/')}/posts/**/index.md`,
+      writePost
+    }
+  }
+
+  function withTempPost(id: string, title: string, run: (temp: ReturnType<typeof createTempPost>) => void) {
+    const temp = createTempPost(id, title)
+    try {
+      run(temp)
+    }
+    finally {
+      temp.cleanup()
     }
   }
 
   it('renders post link from auto scanned posts', () => {
-    const temp = createTempPost('734', 'WordPress 迁移至 Hexo')
-    const md = new MarkdownIt()
-    md.use(MarkdownItExtraLink, {
-      post: {
-        globs: temp.globs
-      }
-    })
+    withTempPost('734', 'WordPress 迁移至 Hexo', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs
+        }
+      })
 
-    const html = md.renderInline('{link:post:734}')
-    expect(html).toContain('href="/post/734"')
-    expect(html).toContain('《WordPress 迁移至 Hexo》')
-    temp.cleanup()
+      const html = md.renderInline('{link:post:734}')
+      expect(html).toContain('href="/post/734"')
+      expect(html).toContain('《WordPress 迁移至 Hexo》')
+    })
   })
 
   it('renders github link with alias', () => {
@@ -95,56 +113,84 @@ title: ${title}
   })
 
   it('trims surrounding spaces around token', () => {
-    const temp = createTempPost('734', 'WordPress 迁移至 Hexo')
-    const md = new MarkdownIt()
-    md.use(MarkdownItExtraLink, {
-      post: {
-        globs: temp.globs
-      }
-    })
+    withTempPost('734', 'WordPress 迁移至 Hexo', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs
+        }
+      })
 
-    const html = md.renderInline('我将博客从 {link:post:734} 并阐述了一些原因')
-    expect(html).toContain('我将博客从<a')
-    expect(html).toContain('</a>并阐述了一些原因')
-    expect(html).not.toContain('从 <a')
-    expect(html).not.toContain('</a> 并')
-    temp.cleanup()
+      const html = md.renderInline('我将博客从 {link:post:734} 并阐述了一些原因')
+      expect(html).toContain('我将博客从<a')
+      expect(html).toContain('</a>并阐述了一些原因')
+      expect(html).not.toContain('从 <a')
+      expect(html).not.toContain('</a> 并')
+    })
   })
 
   it('supports path and formatter placeholders', () => {
-    const temp = createTempPost('734', 'WordPress 迁移至 Hexo')
-    const md = new MarkdownIt()
-    md.use(MarkdownItExtraLink, {
-      post: {
-        globs: temp.globs,
-        path: '/article/:id/:slug',
-        formatter(payload) {
-          return {
-            slug: payload.title.toLowerCase().replaceAll(' ', '-')
+    withTempPost('734', 'WordPress 迁移至 Hexo', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs,
+          path: '/article/:id/:slug',
+          formatter(payload) {
+            return {
+              slug: payload.title.toLowerCase().replaceAll(' ', '-')
+            }
           }
         }
-      }
-    })
+      })
 
-    const html = md.renderInline('{link:post:734}')
-    expect(html).toContain('href="/article/734/wordpress-%E8%BF%81%E7%A7%BB%E8%87%B3-hexo"')
-    expect(html).toContain('《WordPress 迁移至 Hexo》')
-    temp.cleanup()
+      const html = md.renderInline('{link:post:734}')
+      expect(html).toContain('href="/article/734/wordpress-%E8%BF%81%E7%A7%BB%E8%87%B3-hexo"')
+      expect(html).toContain('《WordPress 迁移至 Hexo》')
+    })
   })
 
   it('supports post alias without title brackets', () => {
-    const temp = createTempPost('122', '原始标题')
-    const md = new MarkdownIt()
-    md.use(MarkdownItExtraLink, {
-      post: {
-        globs: temp.globs
-      }
-    })
+    withTempPost('122', '原始标题', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs
+        }
+      })
 
-    const html = md.renderInline('{link:post:122,文章别名}')
-    expect(html).toContain('href="/post/122"')
-    expect(html).toContain('>文章别名</a>')
-    expect(html).not.toContain('《文章别名》')
-    temp.cleanup()
+      const html = md.renderInline('{link:post:122,文章别名}')
+      expect(html).toContain('href="/post/122"')
+      expect(html).toContain('>文章别名</a>')
+      expect(html).not.toContain('《文章别名》')
+    })
+  })
+
+  it('supports escaped comma in alias', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink)
+
+    const html = md.renderInline('{link:github:imba97/blog-vite,My\\, Blog}')
+    expect(html).toContain('>My, Blog</a>')
+  })
+
+  it('scans post files lazily on first resolve', () => {
+    const temp = createTempPost('301', 'Lazy Post', false)
+    try {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs
+        }
+      })
+
+      temp.writePost()
+      const html = md.renderInline('{link:post:301}')
+      expect(html).toContain('href="/post/301"')
+      expect(html).toContain('《Lazy Post》')
+    }
+    finally {
+      temp.cleanup()
+    }
   })
 })
