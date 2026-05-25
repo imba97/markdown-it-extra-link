@@ -165,10 +165,10 @@ title: ${postTitle}
       })
 
       const html = md.renderInline('我将博客从 {link:post:734} 并阐述了一些原因')
-      expect(html).toContain('我将博客从<a')
-      expect(html).toContain('</a>并阐述了一些原因')
-      expect(html).not.toContain('从 <a')
-      expect(html).not.toContain('</a> 并')
+      expect(html).toContain('我将博客从<span class="markdown-extra-link-inline" style="margin-left:0.25em;margin-right:0.25em;"><a')
+      expect(html).toContain('</a></span>并阐述了一些原因')
+      expect(html).not.toContain('从 <span')
+      expect(html).not.toContain('</span> 并')
     })
   })
 
@@ -252,5 +252,44 @@ title: ${postTitle}
     finally {
       temp.cleanup()
     }
+  })
+
+  it('does not apply left margin when no left text', () => {
+    withTempPost('401', 'Only Right Context', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: { globs: temp.globs }
+      })
+
+      const html = md.renderInline('{link:post:401}右侧')
+      expect(html).toContain('style="margin-right:0.25em;"')
+      expect(html).not.toContain('margin-left:0.25em;')
+    })
+  })
+
+  it('does not apply right margin when no right text', () => {
+    withTempPost('402', 'Only Left Context', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: { globs: temp.globs }
+      })
+
+      const html = md.renderInline('左侧{link:post:402}')
+      expect(html).toContain('style="margin-left:0.25em;"')
+      expect(html).not.toContain('margin-right:0.25em;')
+    })
+  })
+
+  it('does not apply auto margins without surrounding text', () => {
+    withTempPost('403', 'No Surrounding Text', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: { globs: temp.globs }
+      })
+
+      const html = md.renderInline('{link:post:403}')
+      expect(html).not.toContain('markdown-extra-link-inline')
+      expect(html).toContain('<a href="/post/403"')
+    })
   })
 })

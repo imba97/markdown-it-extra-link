@@ -9,6 +9,8 @@ export interface ExtraLinkMatch {
   params: string[]
   raw: string
   consumedLength: number
+  leadingWhitespaceLength: number
+  trailingWhitespaceLength: number
 }
 
 export interface ResolvedExtraLink {

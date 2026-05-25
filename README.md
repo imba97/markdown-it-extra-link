@@ -48,6 +48,11 @@ md.use(MarkdownItExtraLink, {
 
 Style extension is now unified under `classNames` and only accepts `string`.
 
+Links now apply automatic contextual spacing in inline text:
+- Add left margin only when there is left-side text
+- Add right margin only when there is right-side text
+- No side text means no margin on that side
+
 ## Built-in Types
 
 ### `post`

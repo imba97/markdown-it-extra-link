@@ -1,5 +1,6 @@
 import type {
   ExtraLink,
+  ExtraLinkClassNames,
   ExtraLinkMatch,
   ExtraLinkResolvedClassNames,
   ExtraLinkResolverContext,
@@ -17,12 +18,14 @@ function normalizeClassName(value?: string): string[] {
 }
 
 function mergeClassNames(
-  base?: ExtraLinkResolvedClassNames,
+  base?: ExtraLinkClassNames,
   extra?: ExtraLinkResolvedClassNames
 ): ExtraLinkResolvedClassNames | undefined {
+  const baseRecord = (base || {}) as Record<string, unknown>
+  const extraRecord = (extra || {}) as Record<string, unknown>
   const slots = new Set<string>([
-    ...Object.keys(base || {}),
-    ...Object.keys(extra || {})
+    ...Object.keys(baseRecord),
+    ...Object.keys(extraRecord)
   ])
   if (!slots.size)
     return undefined
@@ -30,8 +33,8 @@ function mergeClassNames(
   const merged: ExtraLinkResolvedClassNames = {}
   for (const slot of slots) {
     const classSet = new Set<string>([
-      ...normalizeClassName(base?.[slot]),
-      ...normalizeClassName(extra?.[slot])
+      ...normalizeClassName(typeof baseRecord[slot] === 'string' ? baseRecord[slot] : undefined),
+      ...normalizeClassName(typeof extraRecord[slot] === 'string' ? extraRecord[slot] : undefined)
     ])
     if (classSet.size)
       merged[slot] = Array.from(classSet).join(' ')

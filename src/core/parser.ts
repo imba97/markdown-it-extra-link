@@ -10,6 +10,7 @@ import type {
 } from '../types'
 
 const reCapture = /^[ \t]*\{link:([a-z][\w-]*):([^{}\n]+)\}[ \t]*/i
+const AUTO_INLINE_GAP_EM = 0.25
 
 function splitExtraLinkParams(payload: string): string[] {
   const params: string[] = []
@@ -53,6 +54,30 @@ function mergeClassName(...values: Array<string | undefined>): string {
   return Array.from(merged).join(' ')
 }
 
+function isTextChar(char: string | undefined): boolean {
+  if (!char)
+    return false
+  return /[\p{L}\p{N}]/u.test(char)
+}
+
+function findPrevNonSpaceChar(source: string, index: number): string | undefined {
+  for (let i = index; i >= 0; i -= 1) {
+    const char = source[i]
+    if (char !== ' ' && char !== '\t')
+      return char
+  }
+  return undefined
+}
+
+function findNextNonSpaceChar(source: string, index: number): string | undefined {
+  for (let i = index; i < source.length; i += 1) {
+    const char = source[i]
+    if (char !== ' ' && char !== '\t')
+      return char
+  }
+  return undefined
+}
+
 function renderPrefixItems(md: MarkdownIt, items: ResolvedExtraLinkPrefixItem[] = []): string {
   if (!items.length)
     return ''
@@ -84,18 +109,23 @@ export function parseExtraLink(source: string): ExtraLinkMatch | null {
     return null
 
   const [raw, type, payload] = matched
+  const leadingWhitespaceLength = raw.match(/^[ \t]*/)?.[0]?.length || 0
+  const trailingWhitespaceLength = raw.match(/[ \t]*$/)?.[0]?.length || 0
   return {
     type: type.toLowerCase(),
     payload: payload.trim(),
     params: splitExtraLinkParams(payload.trim()),
     raw,
-    consumedLength: raw.length
+    consumedLength: raw.length,
+    leadingWhitespaceLength,
+    trailingWhitespaceLength
   }
 }
 
 export function renderResolvedExtraLink(
   md: MarkdownIt,
-  resolved: ResolvedExtraLink
+  resolved: ResolvedExtraLink,
+  context?: { hasTextBefore: boolean, hasTextAfter: boolean }
 ): string {
   const href = md.normalizeLink(resolved.href)
   const text = md.utils.escapeHtml(resolved.text)
@@ -116,7 +146,14 @@ export function renderResolvedExtraLink(
     ? ` rel="${md.utils.escapeHtml(relValue)}"`
     : ''
   const prefix = renderPrefixItems(md, resolved.prefixItems)
-  return `${prefix}<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
+  const content = `${prefix}<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
+  const hasTextBefore = Boolean(context?.hasTextBefore)
+  const hasTextAfter = Boolean(context?.hasTextAfter)
+  if (!hasTextBefore && !hasTextAfter)
+    return content
+
+  const style = `${hasTextBefore ? `margin-left:${AUTO_INLINE_GAP_EM}em;` : ''}${hasTextAfter ? `margin-right:${AUTO_INLINE_GAP_EM}em;` : ''}`
+  return `<span class="markdown-extra-link-inline" style="${md.utils.escapeHtml(style)}">${content}</span>`
 }
 
 export function createExtraLinkRule(
@@ -145,10 +182,14 @@ export function createExtraLinkRule(
       return false
 
     if (!silent) {
+      const tokenStart = state.pos + parsed.leadingWhitespaceLength
+      const tokenEnd = state.pos + parsed.consumedLength - parsed.trailingWhitespaceLength
+      const hasTextBefore = isTextChar(findPrevNonSpaceChar(state.src, tokenStart - 1))
+      const hasTextAfter = isTextChar(findNextNonSpaceChar(state.src, tokenEnd))
       if (state.pending)
         state.pending = state.pending.replace(/[ \t]+$/g, '')
       const token = state.push('html_inline', '', 0)
-      token.content = renderResolvedExtraLink(md, resolved)
+      token.content = renderResolvedExtraLink(md, resolved, { hasTextBefore, hasTextAfter })
     }
 
     state.pos += parsed.consumedLength
