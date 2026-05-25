@@ -1,10 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
 import MarkdownIt from 'markdown-it'
 import { describe, expect, it } from 'vitest'
 import MarkdownItExtraLink from '../src'
 import { AbstractLink } from '../src/core/abstract'
+import { createTempPost, withTempPost } from './helpers/temp-post'
 
 class DemoLinkType extends AbstractLink {
   readonly type = 'demo'
@@ -18,40 +16,6 @@ class DemoLinkType extends AbstractLink {
 }
 
 describe('markdown-it-extra-link', () => {
-  function createTempPost(id: string, title: string, writeImmediately = true) {
-    const root = mkdtempSync(path.join(tmpdir(), 'markdown-it-extra-link-'))
-    const postDir = path.join(root, 'posts', 'hello-world')
-    const markdownFile = path.join(postDir, 'index.md')
-
-    function writePost(postId = id, postTitle = title) {
-      mkdirSync(postDir, { recursive: true })
-      writeFileSync(markdownFile, `---
-id: ${postId}
-title: ${postTitle}
----
-`, { encoding: 'utf-8' })
-    }
-
-    if (writeImmediately)
-      writePost()
-
-    return {
-      cleanup: () => rmSync(root, { force: true, recursive: true }),
-      globs: `${root.replaceAll('\\', '/')}/posts/**/index.md`,
-      writePost
-    }
-  }
-
-  function withTempPost(id: string, title: string, run: (temp: ReturnType<typeof createTempPost>) => void) {
-    const temp = createTempPost(id, title)
-    try {
-      run(temp)
-    }
-    finally {
-      temp.cleanup()
-    }
-  }
-
   it('renders post link from auto scanned posts', () => {
     withTempPost('734', 'WordPress 迁移至 Hexo', (temp) => {
       const md = new MarkdownIt()

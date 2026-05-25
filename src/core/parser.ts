@@ -112,6 +112,32 @@ function renderPrefixItems(md: MarkdownIt, items: ResolvedExtraLinkPrefixItem[] 
   }).join('')
 }
 
+function renderLinkAnchor(
+  md: MarkdownIt,
+  resolved: ResolvedExtraLink,
+  extraClassName?: string
+): string {
+  const href = md.normalizeLink(resolved.href)
+  const text = md.utils.escapeHtml(resolved.text)
+  const className = mergeClassName(
+    extraClassName,
+    resolved.classNames?.linkClass
+  )
+  const classAttr = className ? ` class="${md.utils.escapeHtml(className)}"` : ''
+  const titleAttr = resolved.title
+    ? ` title="${md.utils.escapeHtml(resolved.title)}"`
+    : ''
+  const targetAttr = resolved.target
+    ? ` target="${md.utils.escapeHtml(resolved.target)}"`
+    : ''
+  const relValue = resolved.rel || (resolved.target === '_blank' ? 'noopener noreferrer' : '')
+  const relAttr = relValue
+    ? ` rel="${md.utils.escapeHtml(relValue)}"`
+    : ''
+
+  return `<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
+}
+
 export function parseExtraLink(source: string): ExtraLinkMatch | null {
   const matched = source.match(reCapture)
   if (!matched)
@@ -136,26 +162,9 @@ export function renderResolvedExtraLink(
   resolved: ResolvedExtraLink,
   context?: { hasTextBefore: boolean, hasTextAfter: boolean }
 ): string {
-  const href = md.normalizeLink(resolved.href)
-  const text = md.utils.escapeHtml(resolved.text)
-  const className = mergeClassName(
-    'markdown-extra-link',
-    resolved.classNames?.linkClass
-  )
-  const classes = className ? [className] : []
-  const classAttr = classes.length ? ` class="${md.utils.escapeHtml(classes.join(' '))}"` : ''
-  const titleAttr = resolved.title
-    ? ` title="${md.utils.escapeHtml(resolved.title)}"`
-    : ''
-  const targetAttr = resolved.target
-    ? ` target="${md.utils.escapeHtml(resolved.target)}"`
-    : ''
-  const relValue = resolved.rel || (resolved.target === '_blank' ? 'noopener noreferrer' : '')
-  const relAttr = relValue
-    ? ` rel="${md.utils.escapeHtml(relValue)}"`
-    : ''
+  const link = renderLinkAnchor(md, resolved, 'markdown-extra-link')
   const prefix = renderPrefixItems(md, resolved.prefixItems)
-  const content = `${prefix}<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
+  const content = `${prefix}${link}`
   const hasTextBefore = Boolean(context?.hasTextBefore)
   const hasTextAfter = Boolean(context?.hasTextAfter)
   if (!hasTextBefore && !hasTextAfter)
@@ -165,12 +174,22 @@ export function renderResolvedExtraLink(
   return `<span class="markdown-extra-link-inline" style="${md.utils.escapeHtml(style)}">${content}</span>`
 }
 
+export function renderResolvedExtraLinkAnchor(md: MarkdownIt, resolved: ResolvedExtraLink): string {
+  return renderLinkAnchor(md, resolved)
+}
+
 export function createExtraLinkRule(
   md: MarkdownIt,
   options: MarkdownItExtraLinkOptions,
   types: ExtraLink[]
 ): RuleInline {
   const typeMap = new Map(types.map(type => [type.type, type]))
+  const renderResolved = options.renderMode === 'anchor'
+    ? (resolved: ResolvedExtraLink) => renderResolvedExtraLinkAnchor(md, resolved)
+    : (
+        resolved: ResolvedExtraLink,
+        context?: { hasTextBefore: boolean, hasTextAfter: boolean }
+      ) => renderResolvedExtraLink(md, resolved, context)
 
   return (state: MarkdownInlineStateLike, silent: boolean) => {
     if (!mayBeExtraLink(state.src, state.pos))
@@ -195,7 +214,7 @@ export function createExtraLinkRule(
       if (state.pending)
         state.pending = state.pending.replace(/[ \t]+$/g, '')
       const token = state.push('html_inline', '', 0)
-      token.content = renderResolvedExtraLink(md, resolved, { hasTextBefore, hasTextAfter })
+      token.content = renderResolved(resolved, { hasTextBefore, hasTextAfter })
     }
 
     state.pos += parsed.consumedLength

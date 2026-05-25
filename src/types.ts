@@ -116,6 +116,11 @@ export interface PostLinkOptions extends ExtraLinkTypeCommonOptions {
    * Return values will replace `:key` in path.
    */
   formatter?: (payload: PostLinkFormatterPayload) => Record<string, unknown>
+  /**
+   * Convert relative href to absolute url when provided.
+   * Only applies when rendered href does not include protocol.
+   */
+  baseUrl?: string
 }
 
 export interface GithubIconOptions {
@@ -148,7 +153,21 @@ export interface MarkdownItExtraLinkOptions {
   post?: false | PostLinkOptions
   github?: false | GithubLinkOptions
   /**
+   * Link rendering output mode.
+   * - `enhanced`: default output with prefix/icon and contextual wrapper.
+   * - `anchor`: output pure `<a>` only.
+   * @default 'enhanced'
+   */
+  renderMode?: ExtraLinkRenderMode
+  /**
    * Custom link types.
    */
   customTypes?: ExtraLink[]
+}
+
+export type ExtraLinkRenderMode = 'enhanced' | 'anchor'
+
+export interface MarkdownItExtraLinkRssOptions extends Omit<MarkdownItExtraLinkOptions, 'post' | 'renderMode'> {
+  baseUrl: string
+  post?: false | Omit<PostLinkOptions, 'baseUrl'>
 }

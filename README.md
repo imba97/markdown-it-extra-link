@@ -44,6 +44,14 @@ md.use(MarkdownItExtraLink, {
 })
 ```
 
+You can also switch to pure `<a>` output (no icon wrapper/style):
+
+```ts
+md.use(MarkdownItExtraLink, {
+  renderMode: 'anchor'
+})
+```
+
 ## Breaking Change
 
 Style extension is now unified under `classNames` and only accepts `string`.
@@ -131,5 +139,27 @@ md.use(MarkdownItExtraLink, {
   customTypes: [
     new BilibiliLinkType()
   ]
+})
+```
+
+## RSS Entry
+
+Use `markdown-it-extra-link/rss` for RSS-friendly output. It always renders pure `<a>` and requires `baseUrl` to make post links absolute:
+
+```ts
+import MarkdownIt from 'markdown-it'
+import MarkdownItExtraLinkRss from 'markdown-it-extra-link/rss'
+
+const md = new MarkdownIt({
+  html: true,
+  breaks: true,
+  linkify: true
+})
+
+md.use(MarkdownItExtraLinkRss, {
+  baseUrl: 'https://example.com',
+  post: {
+    globs: 'posts/**/index.md'
+  }
 })
 ```

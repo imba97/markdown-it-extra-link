@@ -47,6 +47,12 @@ function resolveTemplate(template: string, params: Record<string, unknown>): str
   })
 }
 
+function toAbsoluteHref(href: string, baseUrl?: string): string {
+  if (!baseUrl || href.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(href))
+    return href
+  return new URL(href, baseUrl).toString()
+}
+
 export class PostLink extends AbstractLink {
   readonly type = 'post'
   private readonly postOptions: PostLinkOptions
@@ -96,10 +102,11 @@ export class PostLink extends AbstractLink {
       ...customParams
     }
     const href = resolveTemplate(pathTemplate, params)
+    const resolvedHref = toAbsoluteHref(href, options.baseUrl)
     const text = alias || `《${payload.title}》`
 
     return {
-      href,
+      href: resolvedHref,
       text
     }
   }
