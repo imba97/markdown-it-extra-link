@@ -90,8 +90,7 @@ export class PostLink extends AbstractLink {
 
     return {
       href,
-      text,
-      classList: ['markdown-extra-link-post']
+      text
     }
   }
 }

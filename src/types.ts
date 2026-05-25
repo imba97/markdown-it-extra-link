@@ -14,7 +14,7 @@ export interface ExtraLinkMatch {
 export interface ResolvedExtraLink {
   href: string
   text: string
-  classList?: string[]
+  classNames?: ExtraLinkResolvedClassNames
   prefixItems?: ResolvedExtraLinkPrefixItem[]
   title?: string
   target?: string
@@ -25,14 +25,35 @@ export type ResolvedExtraLinkPrefixItem = ResolvedExtraLinkClassIconPrefixItem |
 
 export interface ResolvedExtraLinkClassIconPrefixItem {
   kind: 'class-icon'
+  /**
+   * Icon base class, usually from icon config.
+   */
   className: string
+  /**
+   * Extra class names from style slot.
+   */
+  extraClassName?: string
   scale?: number
 }
 
 export interface ResolvedExtraLinkImageIconPrefixItem {
   kind: 'image-icon'
   src: string
+  /**
+   * Extra class names for image icon wrapper.
+   */
+  extraClassName?: string
   scale?: number
+}
+
+export interface ExtraLinkCommonClassNames {
+  linkClass?: string
+}
+
+export type ExtraLinkClassNames<T extends object = Record<never, never>> = ExtraLinkCommonClassNames & T
+
+export interface ExtraLinkResolvedClassNames extends ExtraLinkCommonClassNames {
+  [slot: string]: string | undefined
 }
 
 export interface ExtraLinkResolverContext {
@@ -65,6 +86,7 @@ export interface PostLinkFormatterPayload {
 export interface ExtraLinkTypeCommonOptions {
   target?: string
   rel?: string
+  classNames?: ExtraLinkClassNames
 }
 
 export interface PostLinkOptions extends ExtraLinkTypeCommonOptions {
@@ -108,6 +130,9 @@ export interface GithubLinkOptions extends ExtraLinkTypeCommonOptions {
    * Icon config, defaults to built-in svg data url.
    */
   icon?: string | GithubIconOptions
+  classNames?: ExtraLinkClassNames<{
+    iconClass?: string
+  }>
 }
 
 export interface MarkdownItExtraLinkOptions {

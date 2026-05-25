@@ -35,6 +35,24 @@ function splitExtraLinkParams(payload: string): string[] {
   return params
 }
 
+function normalizeClassName(value?: string): string[] {
+  if (!value)
+    return []
+  return value
+    .split(/\s+/)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+function mergeClassName(...values: Array<string | undefined>): string {
+  const merged = new Set<string>()
+  for (const value of values) {
+    for (const item of normalizeClassName(value))
+      merged.add(item)
+  }
+  return Array.from(merged).join(' ')
+}
+
 function renderPrefixItems(md: MarkdownIt, items: ResolvedExtraLinkPrefixItem[] = []): string {
   if (!items.length)
     return ''
@@ -45,15 +63,18 @@ function renderPrefixItems(md: MarkdownIt, items: ResolvedExtraLinkPrefixItem[] 
     const baseStyle = `display:inline-block;vertical-align:text-bottom;width:${size};height:${size};margin-right:0.3em;`
 
     if (item.kind === 'class-icon') {
-      const className = md.utils.escapeHtml(item.className)
-      return `<span class="${className}" style="${baseStyle}"></span>`
+      const className = mergeClassName(item.className, item.extraClassName)
+      const classAttr = className ? ` class="${md.utils.escapeHtml(className)}"` : ''
+      return `<span${classAttr} style="${baseStyle}"></span>`
     }
 
     const safeSrc = item.src
       .replaceAll('"', '%22')
       .replaceAll('\'', '%27')
     const style = `${baseStyle}background-image:url("${safeSrc}");background-size:contain;background-repeat:no-repeat;background-position:center;`
-    return `<span style="${md.utils.escapeHtml(style)}"></span>`
+    const className = mergeClassName(item.extraClassName)
+    const classAttr = className ? ` class="${md.utils.escapeHtml(className)}"` : ''
+    return `<span${classAttr} style="${md.utils.escapeHtml(style)}"></span>`
   }).join('')
 }
 
@@ -78,7 +99,11 @@ export function renderResolvedExtraLink(
 ): string {
   const href = md.normalizeLink(resolved.href)
   const text = md.utils.escapeHtml(resolved.text)
-  const classes = ['markdown-extra-link', ...(resolved.classList || [])]
+  const className = mergeClassName(
+    'markdown-extra-link',
+    resolved.classNames?.linkClass
+  )
+  const classes = className ? [className] : []
   const classAttr = classes.length ? ` class="${md.utils.escapeHtml(classes.join(' '))}"` : ''
   const titleAttr = resolved.title
     ? ` title="${md.utils.escapeHtml(resolved.title)}"`

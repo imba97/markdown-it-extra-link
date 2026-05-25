@@ -25,6 +25,9 @@ md.use(MarkdownItExtraLink, {
     // default is 'posts/**/index.md'
     globs: 'posts/**/index.md',
     path: '/post/:id',
+    classNames: {
+      linkClass: 'text-primary hover:underline'
+    },
     formatter(payload) {
       return {
         title: payload.title
@@ -32,10 +35,18 @@ md.use(MarkdownItExtraLink, {
     }
   },
   github: {
-    scale: 1
+    scale: 1,
+    classNames: {
+      linkClass: 'text-blue-500 font-semibold',
+      iconClass: 'mr-1 text-gray-500'
+    }
   }
 })
 ```
+
+## Breaking Change
+
+Style extension is now unified under `classNames` and only accepts `string`.
 
 ## Built-in Types
 
@@ -60,6 +71,7 @@ Output HTML:
 - `globs`: glob string or array for auto scan, default `posts/**/index.md`, set `false` to disable
 - `path`: path template with `:key` placeholders, default `/post/:id`
 - `formatter`: returns placeholder params object used by `path`
+- `classNames.linkClass`: class string applied to the `<a>` element
 
 ### `github`
 
@@ -81,6 +93,8 @@ Output HTML:
 
 - `scale`: icon scale, default `1`
 - `icon`: UnoCSS class (`i-mdi-github`) or image/data url
+- `classNames.linkClass`: class string applied to the `<a>` element
+- `classNames.iconClass`: class string applied to icon `<span>` wrapper
 
 ## Custom Types
 

@@ -36,12 +36,14 @@ function normalizeIconOption(icon: string | GithubIconOptions | undefined): Gith
 function buildGithubPrefixItems(options: GithubLinkOptions): ResolvedExtraLinkPrefixItem[] {
   const icon = normalizeIconOption(options.icon)
   const scale = Number.isFinite(options.scale) ? Math.max(0.1, Number(options.scale)) : 1
+  const iconClass = options.classNames?.iconClass
 
   if (icon.asClass) {
     const className = icon.value || 'i-mdi-github'
     return [{
       kind: 'class-icon',
       className,
+      extraClassName: iconClass,
       scale
     }]
   }
@@ -49,6 +51,7 @@ function buildGithubPrefixItems(options: GithubLinkOptions): ResolvedExtraLinkPr
   return [{
     kind: 'image-icon',
     src: icon.value || GITHUB_ICON_DATA_URL,
+    extraClassName: iconClass,
     scale
   }]
 }
@@ -76,7 +79,6 @@ export class GithubLink extends AbstractLink {
     return {
       href: `https://github.com/${parsed.repo}`,
       text: parsed.alias || parsed.repo,
-      classList: ['markdown-extra-link-github'],
       prefixItems: buildGithubPrefixItems(options)
     }
   }

@@ -93,6 +93,49 @@ title: ${postTitle}
     expect(html).toContain('rel="noopener"')
   })
 
+  it('supports classNames.linkClass for github link element', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink, {
+      github: {
+        classNames: {
+          linkClass: 'text-blue-500 font-bold'
+        }
+      }
+    })
+
+    const html = md.renderInline('{link:github:imba97/blog-vite}')
+    expect(html).toContain('class="markdown-extra-link markdown-extra-link-github text-blue-500 font-bold"')
+  })
+
+  it('supports classNames.iconClass for github image icon', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink, {
+      github: {
+        classNames: {
+          iconClass: 'mr-1 text-gray-500'
+        }
+      }
+    })
+
+    const html = md.renderInline('{link:github:imba97/blog-vite}')
+    expect(html).toContain('<span class="mr-1 text-gray-500" style="display:inline-block;')
+  })
+
+  it('supports classNames.iconClass for github class icon', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink, {
+      github: {
+        icon: 'i-mdi-github',
+        classNames: {
+          iconClass: 'mr-2 text-gray-600'
+        }
+      }
+    })
+
+    const html = md.renderInline('{link:github:imba97/blog-vite}')
+    expect(html).toContain('<span class="i-mdi-github mr-2 text-gray-600" style="display:inline-block;')
+  })
+
   it('keeps plain text for unknown types', () => {
     const md = new MarkdownIt()
     md.use(MarkdownItExtraLink)
@@ -163,6 +206,23 @@ title: ${postTitle}
       expect(html).toContain('href="/post/122"')
       expect(html).toContain('>文章别名</a>')
       expect(html).not.toContain('《文章别名》')
+    })
+  })
+
+  it('supports classNames.linkClass for post link element', () => {
+    withTempPost('122', '原始标题', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs,
+          classNames: {
+            linkClass: 'text-primary hover:underline'
+          }
+        }
+      })
+
+      const html = md.renderInline('{link:post:122}')
+      expect(html).toContain('class="markdown-extra-link markdown-extra-link-post text-primary hover:underline"')
     })
   })
 
