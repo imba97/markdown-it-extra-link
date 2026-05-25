@@ -7,39 +7,16 @@ import type {
   ExtraLinkTypeCommonOptions,
   ResolvedExtraLink
 } from '../types'
-
-function normalizeClassName(value?: string): string[] {
-  if (!value)
-    return []
-  return value
-    .split(/\s+/)
-    .map(item => item.trim())
-    .filter(Boolean)
-}
+import { mergeClassNameRecords } from './class-name'
 
 function mergeClassNames(
   base?: ExtraLinkClassNames,
   extra?: ExtraLinkResolvedClassNames
 ): ExtraLinkResolvedClassNames | undefined {
-  const baseRecord = (base || {}) as Record<string, unknown>
-  const extraRecord = (extra || {}) as Record<string, unknown>
-  const slots = new Set<string>([
-    ...Object.keys(baseRecord),
-    ...Object.keys(extraRecord)
-  ])
-  if (!slots.size)
-    return undefined
-
-  const merged: ExtraLinkResolvedClassNames = {}
-  for (const slot of slots) {
-    const classSet = new Set<string>([
-      ...normalizeClassName(typeof baseRecord[slot] === 'string' ? baseRecord[slot] : undefined),
-      ...normalizeClassName(typeof extraRecord[slot] === 'string' ? extraRecord[slot] : undefined)
-    ])
-    if (classSet.size)
-      merged[slot] = Array.from(classSet).join(' ')
-  }
-  return Object.keys(merged).length ? merged : undefined
+  return mergeClassNameRecords(
+    (base || {}) as Record<string, unknown>,
+    (extra || {}) as Record<string, unknown>
+  ) as ExtraLinkResolvedClassNames | undefined
 }
 
 export abstract class AbstractLink implements ExtraLink {

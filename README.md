@@ -74,6 +74,7 @@ Output HTML:
 `post` options:
 
 - `globs`: glob string or array for auto scan, default `posts/**/index.md`, set `false` to disable
+- `scanMode`: post index scan timing, `lazy` (default) scans on first resolve, `eager` scans on initialization
 - `path`: path template with `:key` placeholders, default `/post/:id`
 - `formatter`: returns placeholder params object used by `path`
 - `classNames.linkClass`: class string applied to the `<a>` element

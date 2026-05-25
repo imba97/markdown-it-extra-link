@@ -58,7 +58,7 @@ function buildGithubPrefixItems(options: GithubLinkOptions): ResolvedExtraLinkPr
 
 export class GithubLink extends AbstractLink {
   readonly type = 'github'
-  private readonly githubOptions: GithubLinkOptions
+  private readonly prefixItems: ResolvedExtraLinkPrefixItem[]
 
   constructor(options: GithubLinkOptions = {}) {
     const mergedOptions: GithubLinkOptions = {
@@ -67,7 +67,7 @@ export class GithubLink extends AbstractLink {
       ...options
     }
     super(mergedOptions)
-    this.githubOptions = mergedOptions
+    this.prefixItems = buildGithubPrefixItems(mergedOptions)
   }
 
   protected handle(repoRaw = '', aliasRaw = ''): ResolvedExtraLink | null {
@@ -75,11 +75,10 @@ export class GithubLink extends AbstractLink {
     if (!parsed)
       return null
 
-    const options = this.githubOptions
     return {
       href: `https://github.com/${parsed.repo}`,
       text: parsed.alias || parsed.repo,
-      prefixItems: buildGithubPrefixItems(options)
+      prefixItems: this.prefixItems
     }
   }
 }

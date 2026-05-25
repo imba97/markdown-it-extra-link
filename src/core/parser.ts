@@ -8,6 +8,7 @@ import type {
   ResolvedExtraLink,
   ResolvedExtraLinkPrefixItem
 } from '../types'
+import { mergeClassName } from './class-name'
 
 const reCapture = /^[ \t]*\{link:([a-z][\w-]*):([^{}\n]+)\}[ \t]*/i
 const AUTO_INLINE_GAP_EM = 0.25
@@ -36,28 +37,36 @@ function splitExtraLinkParams(payload: string): string[] {
   return params
 }
 
-function normalizeClassName(value?: string): string[] {
-  if (!value)
-    return []
-  return value
-    .split(/\s+/)
-    .map(item => item.trim())
-    .filter(Boolean)
-}
-
-function mergeClassName(...values: Array<string | undefined>): string {
-  const merged = new Set<string>()
-  for (const value of values) {
-    for (const item of normalizeClassName(value))
-      merged.add(item)
-  }
-  return Array.from(merged).join(' ')
-}
-
 function isTextChar(char: string | undefined): boolean {
   if (!char)
     return false
   return /[\p{L}\p{N}]/u.test(char)
+}
+
+function findTokenStart(source: string, position: number): number {
+  const current = source[position]
+  if (current === '{')
+    return position
+  if (current !== ' ' && current !== '\t')
+    return -1
+
+  let tokenStart = position
+  while (tokenStart < source.length) {
+    const char = source[tokenStart]
+    if (char !== ' ' && char !== '\t')
+      break
+    tokenStart += 1
+  }
+  return source[tokenStart] === '{' ? tokenStart : -1
+}
+
+function mayBeExtraLink(source: string, position: number): boolean {
+  const tokenStart = findTokenStart(source, position)
+  if (tokenStart < 0)
+    return false
+  return source
+    .slice(tokenStart, tokenStart + '{link:'.length)
+    .toLowerCase() === '{link:'
 }
 
 function findPrevNonSpaceChar(source: string, index: number): string | undefined {
@@ -164,10 +173,7 @@ export function createExtraLinkRule(
   const typeMap = new Map(types.map(type => [type.type, type]))
 
   return (state: MarkdownInlineStateLike, silent: boolean) => {
-    const current = state.src.charCodeAt(state.pos)
-    const isOpenBrace = current === '{'.charCodeAt(0)
-    const isWhitespace = current === ' '.charCodeAt(0) || current === '\t'.charCodeAt(0)
-    if (!isOpenBrace && !isWhitespace)
+    if (!mayBeExtraLink(state.src, state.pos))
       return false
 
     const starts = state.src.slice(state.pos)

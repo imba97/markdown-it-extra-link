@@ -100,6 +100,13 @@ export interface PostLinkOptions extends ExtraLinkTypeCommonOptions {
    */
   globs?: string | string[] | false
   /**
+   * Post index scan mode.
+   * - `lazy`: scan on first resolve.
+   * - `eager`: scan when link type is created.
+   * @default 'lazy'
+   */
+  scanMode?: 'lazy' | 'eager'
+  /**
    * Href template with `:key` placeholders.
    * @default '/post/:id'
    */

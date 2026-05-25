@@ -254,6 +254,28 @@ title: ${postTitle}
     }
   })
 
+  it('supports eager scan mode for post files', () => {
+    const temp = createTempPost('302', 'Eager Post', false)
+    try {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: {
+          globs: temp.globs,
+          scanMode: 'eager'
+        }
+      })
+
+      temp.writePost()
+      const html = md.renderInline('{link:post:302}')
+      expect(html).toContain('href="/post/302"')
+      expect(html).toContain('《302》')
+      expect(html).not.toContain('《Eager Post》')
+    }
+    finally {
+      temp.cleanup()
+    }
+  })
+
   it('does not apply left margin when no left text', () => {
     withTempPost('401', 'Only Right Context', (temp) => {
       const md = new MarkdownIt()
@@ -291,5 +313,34 @@ title: ${postTitle}
       expect(html).not.toContain('markdown-extra-link-inline')
       expect(html).toContain('<a href="/post/403"')
     })
+  })
+
+  it('does not apply auto margins with only surrounding whitespace', () => {
+    withTempPost('404', 'Whitespace Context', (temp) => {
+      const md = new MarkdownIt()
+      md.use(MarkdownItExtraLink, {
+        post: { globs: temp.globs }
+      })
+
+      const html = md.renderInline('\t  {link:post:404}  \t')
+      expect(html).not.toContain('markdown-extra-link-inline')
+      expect(html).toContain('<a href="/post/404"')
+    })
+  })
+
+  it('keeps plain text for empty post id payload', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink)
+
+    const html = md.renderInline('{link:post:   }')
+    expect(html).toBe('{link:post:   }')
+  })
+
+  it('supports escaped backslash in alias', () => {
+    const md = new MarkdownIt()
+    md.use(MarkdownItExtraLink)
+
+    const html = md.renderInline('{link:github:imba97/blog-vite,Path\\\\Name}')
+    expect(html).toContain('>Path\\Name</a>')
   })
 })
