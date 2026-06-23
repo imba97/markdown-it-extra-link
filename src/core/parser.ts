@@ -1,3 +1,4 @@
+import type { MagicMarkMatch } from 'magic-mark'
 import type MarkdownIt from 'markdown-it'
 import type { RuleInline } from 'markdown-it/lib/parser_inline.mjs'
 import type {
@@ -8,65 +9,20 @@ import type {
   ResolvedExtraLink,
   ResolvedExtraLinkPrefixItem
 } from '../types'
+import { createMagicMark } from 'magic-mark'
 import { mergeClassName } from './class-name'
 
-const reCapture = /^[ \t]*\{link:([a-z][\w-]*):([^{}\n]+)\}[ \t]*/i
+const LINK_ID = 'link'
+const LINK_PREFIX = `{${LINK_ID}:`
+const linkMark = createMagicMark({ id: LINK_ID })
+
 const AUTO_INLINE_GAP_EM = 0.25
-
-function splitExtraLinkParams(payload: string): string[] {
-  const params: string[] = []
-  let current = ''
-
-  for (let i = 0; i < payload.length; i += 1) {
-    const char = payload[i]
-    const next = payload[i + 1]
-    if (char === '\\' && (next === ',' || next === '\\')) {
-      current += next
-      i += 1
-      continue
-    }
-    if (char === ',') {
-      params.push(current.trim())
-      current = ''
-      continue
-    }
-    current += char
-  }
-
-  params.push(current.trim())
-  return params
-}
+const TRAILING_WHITESPACE_RE = /[ \t]+$/
 
 function isTextChar(char: string | undefined): boolean {
   if (!char)
     return false
   return /[\p{L}\p{N}]/u.test(char)
-}
-
-function findTokenStart(source: string, position: number): number {
-  const current = source[position]
-  if (current === '{')
-    return position
-  if (current !== ' ' && current !== '\t')
-    return -1
-
-  let tokenStart = position
-  while (tokenStart < source.length) {
-    const char = source[tokenStart]
-    if (char !== ' ' && char !== '\t')
-      break
-    tokenStart += 1
-  }
-  return source[tokenStart] === '{' ? tokenStart : -1
-}
-
-function mayBeExtraLink(source: string, position: number): boolean {
-  const tokenStart = findTokenStart(source, position)
-  if (tokenStart < 0)
-    return false
-  return source
-    .slice(tokenStart, tokenStart + '{link:'.length)
-    .toLowerCase() === '{link:'
 }
 
 function findPrevNonSpaceChar(source: string, index: number): string | undefined {
@@ -138,25 +94,6 @@ function renderLinkAnchor(
   return `<a href="${md.utils.escapeHtml(href)}"${classAttr}${titleAttr}${targetAttr}${relAttr}>${text}</a>`
 }
 
-export function parseExtraLink(source: string): ExtraLinkMatch | null {
-  const matched = source.match(reCapture)
-  if (!matched)
-    return null
-
-  const [raw, type, payload] = matched
-  const leadingWhitespaceLength = raw.match(/^[ \t]*/)?.[0]?.length || 0
-  const trailingWhitespaceLength = raw.match(/[ \t]*$/)?.[0]?.length || 0
-  return {
-    type: type.toLowerCase(),
-    payload: payload.trim(),
-    params: splitExtraLinkParams(payload.trim()),
-    raw,
-    consumedLength: raw.length,
-    leadingWhitespaceLength,
-    trailingWhitespaceLength
-  }
-}
-
 export function renderResolvedExtraLink(
   md: MarkdownIt,
   resolved: ResolvedExtraLink,
@@ -191,33 +128,67 @@ export function createExtraLinkRule(
         context?: { hasTextBefore: boolean, hasTextAfter: boolean }
       ) => renderResolvedExtraLink(md, resolved, context)
 
+  // `magic-mark` walks the source on every `parse()` call (it rebuilds its
+  // regex defensively), so caching turns a quadratic inline rule into a
+  // linear one. Cache invalidates automatically when the source changes.
+  let parseCache: { src: string, matches: MagicMarkMatch[] } | null = null
+
   return (state: MarkdownInlineStateLike, silent: boolean) => {
-    if (!mayBeExtraLink(state.src, state.pos))
+    const src = state.src
+    if (!parseCache || parseCache.src !== src)
+      parseCache = { src, matches: linkMark.parse(src) }
+
+    // Cursor must land exactly on `{`. Leading whitespace is absorbed by
+    // markdown-it's text rule into `state.pending`; we trim that below so
+    // the link sits flush against surrounding text.
+    const cursor = state.pos
+    const match = parseCache.matches.find(m => !m.escaped && m.start === cursor)
+    if (!match)
       return false
 
-    const starts = state.src.slice(state.pos)
-    const parsed = parseExtraLink(starts)
-    if (!parsed)
-      return false
+    // Consume any horizontal whitespace after the closing `}` so the
+    // surrounding text doesn't pick it up.
+    let trailingWhitespaceLength = 0
+    while (match.end + trailingWhitespaceLength < src.length) {
+      const ch = src[match.end + trailingWhitespaceLength]
+      if (ch !== ' ' && ch !== '\t')
+        break
+      trailingWhitespaceLength += 1
+    }
+    const consumedLength = match.raw.length + trailingWhitespaceLength
 
-    const matchedType = typeMap.get(parsed.type)
-    const resolved = matchedType?.resolve(parsed, { md, state, options })
+    // Reconstruct the source-form payload (text between the second `:` and
+    // the closing `}`) for resolvers that read `match.payload`.
+    const afterType = LINK_PREFIX.length + match.type.length
+    const secondColon = match.raw.indexOf(':', afterType)
+    const payload = secondColon >= 0 ? match.raw.slice(secondColon + 1, -1) : ''
 
+    const matched: ExtraLinkMatch = {
+      type: match.type,
+      payload,
+      params: match.params,
+      raw: src.slice(cursor, cursor + consumedLength),
+      consumedLength,
+      leadingWhitespaceLength: 0,
+      trailingWhitespaceLength
+    }
+
+    const resolved = typeMap.get(matched.type)?.resolve(matched, { md, state, options })
     if (!resolved)
       return false
 
     if (!silent) {
-      const tokenStart = state.pos + parsed.leadingWhitespaceLength
-      const tokenEnd = state.pos + parsed.consumedLength - parsed.trailingWhitespaceLength
-      const hasTextBefore = isTextChar(findPrevNonSpaceChar(state.src, tokenStart - 1))
-      const hasTextAfter = isTextChar(findNextNonSpaceChar(state.src, tokenEnd))
+      const tokenStart = match.start
+      const tokenEnd = match.end
+      const hasTextBefore = isTextChar(findPrevNonSpaceChar(src, tokenStart - 1))
+      const hasTextAfter = isTextChar(findNextNonSpaceChar(src, tokenEnd))
       if (state.pending)
-        state.pending = state.pending.replace(/[ \t]+$/g, '')
+        state.pending = state.pending.replace(TRAILING_WHITESPACE_RE, '')
       const token = state.push('html_inline', '', 0)
       token.content = renderResolved(resolved, { hasTextBefore, hasTextAfter })
     }
 
-    state.pos += parsed.consumedLength
+    state.pos += consumedLength
     return true
   }
 }

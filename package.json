@@ -2,7 +2,7 @@
   "name": "markdown-it-extra-link",
   "type": "module",
   "version": "0.3.0",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@11.8.0",
   "description": "Extend markdown-it with typed inline links like {link:post:123}.",
   "author": "imba97",
   "license": "MIT",
@@ -62,20 +62,21 @@
   },
   "dependencies": {
     "gray-matter": "^4.0.3",
-    "tinyglobby": "^0.2.16"
+    "magic-mark": "^0.1.0",
+    "tinyglobby": "^0.2.17"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^9.0.0",
     "@types/markdown-it": "^14.1.2",
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.0.0",
     "bumpp": "^11.1.0",
-    "eslint": "^10.4.0",
+    "eslint": "^10.5.0",
     "markdown-it": "^14.2.0",
     "nano-staged": "^1.0.2",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
     "unbuild": "^3.6.1",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.9"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm nano-staged"
