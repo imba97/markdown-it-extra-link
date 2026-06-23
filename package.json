@@ -1,7 +1,7 @@
 {
   "name": "markdown-it-extra-link",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "packageManager": "pnpm@11.8.0",
   "description": "Extend markdown-it with typed inline links like {link:post:123}.",
   "author": "imba97",
